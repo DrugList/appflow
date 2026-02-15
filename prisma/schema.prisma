@@ -1,0 +1,118 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// App Builder Models
+model App {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  icon        String?  // Emoji or icon name
+  iconColor   String   @default("#3B82F6")
+  published   Boolean  @default(false)
+  schema      String   // JSON string of the app schema (forms, views, etc)
+  settings    String?  // JSON string of app settings
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  records     Record[]
+  collaborators Collaborator[]
+  dataSources DataSource[]
+}
+
+model Record {
+  id        String   @id @default(cuid())
+  appId     String
+  app       App      @relation(fields: [appId], references: [id], onDelete: Cascade)
+  data      String   // JSON string of form data
+  isFavorite Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([appId])
+  @@index([createdAt])
+}
+
+model Collaborator {
+  id     String @id @default(cuid())
+  appId  String
+  app    App    @relation(fields: [appId], references: [id], onDelete: Cascade)
+  email  String
+  role   String // "viewer", "editor", "admin"
+  
+  @@unique([appId, email])
+}
+
+// Data Source Connections
+model DataSource {
+  id          String   @id @default(cuid())
+  name        String
+  type        String   // "google_sheets", "local", "api", "airtable", "supabase"
+  config      String   // JSON config (encrypted for sensitive data)
+  appId       String?
+  app         App?     @relation(fields: [appId], references: [id], onDelete: Cascade)
+  lastSync    DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Workflow definitions
+model Workflow {
+  id          String   @id @default(cuid())
+  appId       String
+  name        String
+  trigger     String   // JSON trigger config
+  conditions  String   // JSON conditions array
+  actions     String   // JSON actions array
+  enabled     Boolean  @default(true)
+  lastRun     DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Notification queue for offline -> online sync
+model NotificationQueue {
+  id          String   @id @default(cuid())
+  type        String   // "email", "sms", "push"
+  payload     String   // JSON payload
+  status      String   @default("pending") // "pending", "sent", "failed"
+  attempts    Int      @default(0)
+  error       String?
+  createdAt   DateTime @default(now())
+  sentAt      DateTime?
+  
+  @@index([status])
+}
+
+// User preferences and settings
+model UserSettings {
+  id                String   @id @default(cuid())
+  deviceId          String   @unique // Browser/device identifier
+  theme             String   @default("system") // "light", "dark", "system"
+  favoriteApps      String   @default("[]") // JSON array of favorite app IDs
+  installedApps     String   @default("[]") // JSON array of installed app IDs
+  notifications     String   @default("{}") // JSON notification preferences
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+// Audit log for data changes
+model AuditLog {
+  id          String   @id @default(cuid())
+  appId       String
+  recordId    String?
+  action      String   // "create", "update", "delete"
+  changes     String   // JSON of changes
+  performedBy String?  // Device ID or user identifier
+  createdAt   DateTime @default(now())
+  
+  @@index([appId])
+  @@index([createdAt])
+}
