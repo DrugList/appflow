@@ -18,16 +18,17 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { 
   Database, Palette, Settings as SettingsIcon, Layout, 
-  ChevronRight, ExternalLink, Check, Loader2
+  ChevronRight, ExternalLink, Check, Loader2, ArrowLeft
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface AppBuilderProps {
   initialApp?: AppSchema;
   appId?: string;
+  onBack?: () => void;
 }
 
-export function AppBuilder({ initialApp, appId }: AppBuilderProps) {
+export function AppBuilder({ initialApp, appId, onBack }: AppBuilderProps) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -191,6 +192,7 @@ export function AppBuilder({ initialApp, appId }: AppBuilderProps) {
         onPublish={handlePublish}
         sidebarTab={sidebarTab}
         onSidebarTabChange={setSidebarTab}
+        onBack={onBack}
       />
 
       {/* Main content */}
@@ -199,7 +201,7 @@ export function AppBuilder({ initialApp, appId }: AppBuilderProps) {
         <motion.div
           initial={{ width: 0, opacity: 0 }}
           animate={{ width: 280, opacity: 1 }}
-          className="border-r bg-muted/30 flex-shrink-0 overflow-hidden"
+          className="border-r bg-muted/30 flex-shrink-0 overflow-y-auto"
         >
           <AnimatePresence mode="wait">
             {sidebarTab === 'fields' && (
@@ -277,7 +279,7 @@ export function AppBuilder({ initialApp, appId }: AppBuilderProps) {
               initial={{ width: 0, opacity: 0 }}
               animate={{ width: 300, opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
-              className="border-l bg-muted/30 flex-shrink-0 overflow-hidden"
+              className="border-l bg-muted/30 flex-shrink-0 overflow-y-auto"
             >
               <PropertyPanel
                 field={selectedField}
@@ -398,7 +400,7 @@ function SettingsPanel({
   ];
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col overflow-y-auto">
       <div className="mb-4">
         <h3 className="font-semibold text-sm">App Settings</h3>
         <p className="text-xs text-muted-foreground mt-1">
@@ -406,7 +408,7 @@ function SettingsPanel({
         </p>
       </div>
       
-      <div className="space-y-4">
+      <div className="space-y-4 pb-4">
         <div className="space-y-2">
           <Label className="text-xs">Description</Label>
           <Textarea
@@ -423,6 +425,7 @@ function SettingsPanel({
             {icons.map((icon) => (
               <button
                 key={icon}
+                type="button"
                 onClick={() => onUpdateIcon(icon, app.iconColor || '#3B82F6')}
                 className={`w-10 h-10 rounded-lg flex items-center justify-center text-lg transition-transform hover:scale-110 ${
                   app.icon === icon ? 'ring-2 ring-primary ring-offset-2' : 'bg-muted'
@@ -440,6 +443,7 @@ function SettingsPanel({
             {colors.map((color) => (
               <button
                 key={color}
+                type="button"
                 onClick={() => onUpdateIcon(app.icon || '📱', color)}
                 className={`w-8 h-8 rounded-full transition-transform hover:scale-110 ${
                   app.iconColor === color ? 'ring-2 ring-offset-2 ring-primary' : ''
@@ -448,6 +452,13 @@ function SettingsPanel({
               />
             ))}
           </div>
+        </div>
+
+        <div className="pt-4 border-t">
+          <Button variant="outline" className="w-full" onClick={() => window.open('?embed=true', '_blank')}>
+            <ExternalLink className="h-4 w-4 mr-2" />
+            Preview App
+          </Button>
         </div>
       </div>
     </div>

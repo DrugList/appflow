@@ -35,7 +35,7 @@ interface AppRuntimeProps {
   onBack: () => void;
 }
 
-interface Record {
+interface AppRecord {
   id: string;
   appId: string;
   data: Record<string, unknown>;
@@ -47,7 +47,7 @@ interface Record {
 export function AppRuntime({ app, onBack }: AppRuntimeProps) {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const [records, setRecords] = useState<Record[]>([]);
+  const [records, setRecords] = useState<AppRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
@@ -404,7 +404,7 @@ export function AppRuntime({ app, onBack }: AppRuntimeProps) {
 
 // Record Card Component
 function RecordCard({ record, fields, isFavorite, onToggleFavorite, primaryColor }: {
-  record: Record;
+  record: AppRecord;
   fields: FormField[];
   isFavorite: boolean;
   onToggleFavorite: () => void;
@@ -454,7 +454,7 @@ function RecordCard({ record, fields, isFavorite, onToggleFavorite, primaryColor
 
 // Record Table Component
 function RecordTable({ records, fields, onToggleFavorite, primaryColor }: {
-  records: Record[];
+  records: AppRecord[];
   fields: FormField[];
   onToggleFavorite: (id: string) => void;
   primaryColor: string;
@@ -731,9 +731,9 @@ function FormFieldInput({ field, value, onChange, error, primaryColor }: {
     case 'photo':
       return (
         <div className="space-y-2">
-          {value && typeof value === 'string' && (
+          {value && typeof value === 'string' && value.length > 0 ? (
             <img src={value} alt="Captured" className="w-full h-32 object-cover rounded-lg" />
-          )}
+          ) : null}
           <Input
             id={field.id}
             type="file"

@@ -326,6 +326,7 @@ export default function Home() {
       <AppBuilder
         initialApp={appSchema}
         appId={editingApp.id}
+        onBack={() => setEditingApp(null)}
       />
     );
   }
@@ -403,7 +404,7 @@ export default function Home() {
                     New App
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-[600px]">
+                <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Create New App</DialogTitle>
                     <DialogDescription>
@@ -418,7 +419,7 @@ export default function Home() {
                     </TabsList>
 
                     <TabsContent value="templates" className="mt-4">
-                      <div className="grid grid-cols-2 gap-3 max-h-[300px] overflow-y-auto">
+                      <div className="grid grid-cols-2 gap-3 max-h-[250px] overflow-y-auto">
                         {APP_TEMPLATES.slice(1).map((template, index) => (
                           <Card
                             key={index}
@@ -449,9 +450,20 @@ export default function Home() {
                     </TabsContent>
 
                     <TabsContent value="blank" className="mt-4">
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Start with a blank app and add your own fields.
-                      </p>
+                      <div className="space-y-4">
+                        <p className="text-sm text-muted-foreground">
+                          Start with a blank app and add your own fields.
+                        </p>
+                        <div className="p-4 border rounded-lg bg-muted/30">
+                          <p className="text-sm font-medium">You can add:</p>
+                          <ul className="text-sm text-muted-foreground mt-2 space-y-1">
+                            <li>• Text, Email, Phone, Number fields</li>
+                            <li>• Date, Time, DateTime pickers</li>
+                            <li>• Photos, Signatures, Locations</li>
+                            <li>• Dropdowns, Checkboxes, Radio buttons</li>
+                          </ul>
+                        </div>
+                      </div>
                     </TabsContent>
                   </Tabs>
 
@@ -477,13 +489,14 @@ export default function Home() {
                       />
                     </div>
 
-                    <div className="flex gap-4">
-                      <div className="space-y-2 flex-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
                         <Label>Icon</Label>
                         <div className="flex flex-wrap gap-1">
                           {icons.map((icon) => (
                             <button
                               key={icon}
+                              type="button"
                               onClick={() => setNewAppIcon(icon)}
                               className={cn(
                                 "w-9 h-9 rounded-lg flex items-center justify-center text-lg transition-transform hover:scale-110",
@@ -502,6 +515,7 @@ export default function Home() {
                           {colors.map((color) => (
                             <button
                               key={color}
+                              type="button"
                               onClick={() => setNewAppColor(color)}
                               className={cn(
                                 "w-9 h-9 rounded-full transition-transform hover:scale-110",

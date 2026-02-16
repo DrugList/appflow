@@ -19,11 +19,6 @@ import {
   CircleDot,
   AlignLeft,
   Link,
-  Palette,
-  Star,
-  ToggleLeft,
-  ListChecks,
-  Star as StarFilled,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -31,10 +26,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { FormField, FieldType } from '@/types/app-builder';
+import { FormField, FieldType, OptionField, NumberField, TextareaField } from '@/types/app-builder';
 
 interface FieldRendererProps {
   field: FormField;
@@ -44,7 +37,7 @@ interface FieldRendererProps {
 }
 
 // Icon mapping for field types
-const FIELD_ICONS: Record<FieldType, typeof Type> = {
+const FIELD_ICONS: Partial<Record<FieldType, typeof Type>> = {
   text: Type,
   number: Hash,
   email: Mail,
@@ -58,19 +51,20 @@ const FIELD_ICONS: Record<FieldType, typeof Type> = {
   photo: Camera,
   file: FileUp,
   select: List,
-  multiselect: ListChecks,
+  multiselect: List,
   checkbox: CheckSquare,
   radio: CircleDot,
   textarea: AlignLeft,
   url: Link,
-  color: Palette,
-  rating: Star,
-  switch: ToggleLeft,
 };
 
+// Type guard to check if field has options
+function hasOptions(field: FormField): field is OptionField {
+  return ['select', 'multiselect', 'radio', 'checkbox'].includes(field.type);
+}
+
 export function FieldRenderer({ field, isPreview = false, value, onChange }: FieldRendererProps) {
-  const [localValue, setLocalValue] = useState(value ?? field.defaultValue ?? '');
-  const [rating, setRating] = useState(Number(localValue) || 0);
+  const [localValue, setLocalValue] = useState<unknown>(value ?? field.defaultValue ?? '');
 
   const handleChange = (newValue: unknown) => {
     setLocalValue(newValue);
@@ -90,40 +84,46 @@ export function FieldRenderer({ field, isPreview = false, value, onChange }: Fie
           <Input
             type={field.type === 'email' ? 'email' : field.type === 'phone' ? 'tel' : 'text'}
             placeholder={field.placeholder}
-            value={String(localValue)}
+            value={String(localValue || '')}
             onChange={(e) => handleChange(e.target.value)}
             disabled={!isPreview}
           />
         );
 
-      case 'number':
+      case 'number': {
+        const numField = field as NumberField;
         return (
           <Input
             type="number"
             placeholder={field.placeholder}
-            value={String(localValue)}
-            onChange={(e) => handleChange(e.target.value)}
-            step={field.properties?.step ?? 1}
+            value={localValue !== null && localValue !== undefined ? String(localValue) : ''}
+            onChange={(e) => handleChange(e.target.value ? Number(e.target.value) : null)}
+            step={numField.step ?? 1}
+            min={numField.min}
+            max={numField.max}
             disabled={!isPreview}
           />
         );
+      }
 
-      case 'textarea':
+      case 'textarea': {
+        const textareaField = field as TextareaField;
         return (
           <Textarea
             placeholder={field.placeholder}
-            value={String(localValue)}
+            value={String(localValue || '')}
             onChange={(e) => handleChange(e.target.value)}
-            rows={field.properties?.rows ?? 4}
+            rows={textareaField.rows ?? 4}
             disabled={!isPreview}
           />
         );
+      }
 
       case 'date':
         return (
           <Input
             type="date"
-            value={String(localValue)}
+            value={String(localValue || '')}
             onChange={(e) => handleChange(e.target.value)}
             disabled={!isPreview}
           />
@@ -133,7 +133,7 @@ export function FieldRenderer({ field, isPreview = false, value, onChange }: Fie
         return (
           <Input
             type="time"
-            value={String(localValue)}
+            value={String(localValue || '')}
             onChange={(e) => handleChange(e.target.value)}
             disabled={!isPreview}
           />
@@ -143,57 +143,63 @@ export function FieldRenderer({ field, isPreview = false, value, onChange }: Fie
         return (
           <Input
             type="datetime-local"
-            value={String(localValue)}
+            value={String(localValue || '')}
             onChange={(e) => handleChange(e.target.value)}
             disabled={!isPreview}
           />
         );
 
       case 'select':
-        return (
-          <Select
-            value={String(localValue)}
-            onValueChange={handleChange}
-            disabled={!isPreview}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder={field.placeholder || 'Select an option'} />
-            </SelectTrigger>
-            <SelectContent>
-              {field.options?.map((option) => (
-                <SelectItem key={option.id} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        );
+        if (hasOptions(field)) {
+          return (
+            <Select
+              value={String(localValue || '')}
+              onValueChange={handleChange}
+              disabled={!isPreview}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={field.placeholder || 'Select an option'} />
+              </SelectTrigger>
+              <SelectContent>
+                {field.options.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          );
+        }
+        return null;
 
       case 'multiselect':
-        return (
-          <div className="space-y-2">
-            {field.options?.map((option) => (
-              <div key={option.id} className="flex items-center space-x-2">
-                <Checkbox
-                  id={option.id}
-                  checked={(localValue as string[])?.includes(option.value)}
-                  onCheckedChange={(checked) => {
-                    const current = (localValue as string[]) || [];
-                    if (checked) {
-                      handleChange([...current, option.value]);
-                    } else {
-                      handleChange(current.filter((v) => v !== option.value));
-                    }
-                  }}
-                  disabled={!isPreview}
-                />
-                <Label htmlFor={option.id} className="text-sm font-normal">
-                  {option.label}
-                </Label>
-              </div>
-            ))}
-          </div>
-        );
+        if (hasOptions(field)) {
+          return (
+            <div className="space-y-2">
+              {field.options.map((option) => (
+                <div key={option.value} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`${field.id}-${option.value}`}
+                    checked={Array.isArray(localValue) && (localValue as string[]).includes(option.value)}
+                    onCheckedChange={(checked) => {
+                      const current = Array.isArray(localValue) ? (localValue as string[]) : [];
+                      if (checked) {
+                        handleChange([...current, option.value]);
+                      } else {
+                        handleChange(current.filter((v) => v !== option.value));
+                      }
+                    }}
+                    disabled={!isPreview}
+                  />
+                  <Label htmlFor={`${field.id}-${option.value}`} className="text-sm font-normal">
+                    {option.label}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          );
+        }
+        return null;
 
       case 'checkbox':
         return (
@@ -211,89 +217,25 @@ export function FieldRenderer({ field, isPreview = false, value, onChange }: Fie
         );
 
       case 'radio':
-        return (
-          <RadioGroup
-            value={String(localValue)}
-            onValueChange={handleChange}
-            disabled={!isPreview}
-          >
-            {field.options?.map((option) => (
-              <div key={option.id} className="flex items-center space-x-2">
-                <RadioGroupItem value={option.value} id={option.id} />
-                <Label htmlFor={option.id} className="text-sm font-normal">
-                  {option.label}
-                </Label>
-              </div>
-            ))}
-          </RadioGroup>
-        );
-
-      case 'switch':
-        return (
-          <div className="flex items-center space-x-2">
-            <Switch
-              id={field.id}
-              checked={Boolean(localValue)}
-              onCheckedChange={handleChange}
+        if (hasOptions(field)) {
+          return (
+            <RadioGroup
+              value={String(localValue || '')}
+              onValueChange={handleChange}
               disabled={!isPreview}
-            />
-            <Label htmlFor={field.id} className="text-sm font-normal">
-              {field.placeholder || 'Toggle this switch'}
-            </Label>
-          </div>
-        );
-
-      case 'rating':
-        const maxRating = field.properties?.ratingMax ?? 5;
-        return (
-          <div className="flex items-center gap-1">
-            {Array.from({ length: maxRating }, (_, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => {
-                  setRating(i + 1);
-                  handleChange(i + 1);
-                }}
-                disabled={!isPreview}
-                className="focus:outline-none"
-              >
-                <motion.div
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                >
-                  <StarFilled
-                    className={`h-6 w-6 ${
-                      i < rating
-                        ? 'fill-yellow-400 text-yellow-400'
-                        : 'text-muted-foreground'
-                    }`}
-                  />
-                </motion.div>
-              </button>
-            ))}
-          </div>
-        );
-
-      case 'color':
-        return (
-          <div className="flex items-center gap-3">
-            <Input
-              type="color"
-              value={String(localValue) || '#000000'}
-              onChange={(e) => handleChange(e.target.value)}
-              className="w-12 h-10 p-1 cursor-pointer"
-              disabled={!isPreview}
-            />
-            <Input
-              type="text"
-              value={String(localValue) || '#000000'}
-              onChange={(e) => handleChange(e.target.value)}
-              className="flex-1"
-              disabled={!isPreview}
-            />
-          </div>
-        );
+            >
+              {field.options.map((option) => (
+                <div key={option.value} className="flex items-center space-x-2">
+                  <RadioGroupItem value={option.value} id={`${field.id}-${option.value}`} />
+                  <Label htmlFor={`${field.id}-${option.value}`} className="text-sm font-normal">
+                    {option.label}
+                  </Label>
+                </div>
+              ))}
+            </RadioGroup>
+          );
+        }
+        return null;
 
       case 'photo':
         return (
@@ -365,20 +307,23 @@ export function FieldRenderer({ field, isPreview = false, value, onChange }: Fie
           </div>
         );
 
-      default:
+      default: {
+        // For any unhandled field types
+        const _exhaustiveCheck: never = field;
         return (
           <Input
-            placeholder={field.placeholder}
-            value={String(localValue)}
+            placeholder={(field as { placeholder?: string }).placeholder || ''}
+            value={String(localValue || '')}
             onChange={(e) => handleChange(e.target.value)}
             disabled={!isPreview}
           />
         );
+      }
     }
   };
 
   // Don't show label for certain field types
-  const showLabel = !['checkbox', 'switch'].includes(field.type);
+  const showLabel = !['checkbox'].includes(field.type);
 
   return (
     <div className="space-y-2">
@@ -387,15 +332,15 @@ export function FieldRenderer({ field, isPreview = false, value, onChange }: Fie
           {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
           <Label className="text-sm font-medium">
             {field.label}
-            {field.validation?.required && (
+            {field.required && (
               <span className="text-destructive ml-1">*</span>
             )}
           </Label>
         </div>
       )}
       {renderField()}
-      {field.helperText && (
-        <p className="text-xs text-muted-foreground">{field.helperText}</p>
+      {field.description && (
+        <p className="text-xs text-muted-foreground">{field.description}</p>
       )}
     </div>
   );

@@ -82,9 +82,15 @@ export interface PhotoField extends BaseField {
 }
 
 // Select/Radio/Checkbox fields with options
+export interface SelectOption {
+  id?: string;
+  label: string;
+  value: string;
+}
+
 export interface OptionField extends BaseField {
   type: 'select' | 'multiselect' | 'radio' | 'checkbox';
-  options: { label: string; value: string }[];
+  options: SelectOption[];
 }
 
 // Textarea field

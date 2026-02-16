@@ -11,44 +11,8 @@
   "categories": ["productivity", "business", "utilities"],
   "icons": [
     {
-      "src": "/icons/icon-72.png",
-      "sizes": "72x72",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icons/icon-96.png",
-      "sizes": "96x96",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icons/icon-128.png",
-      "sizes": "128x128",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icons/icon-144.png",
-      "sizes": "144x144",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icons/icon-152.png",
-      "sizes": "152x152",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
       "src": "/icons/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icons/icon-384.png",
-      "sizes": "384x384",
       "type": "image/png",
       "purpose": "any maskable"
     },
@@ -64,31 +28,13 @@
       "name": "Create New App",
       "short_name": "New App",
       "description": "Create a new no-code app",
-      "url": "/?action=new",
-      "icons": [{ "src": "/icons/shortcut-new.png", "sizes": "96x96" }]
+      "url": "/?action=new"
     },
     {
       "name": "My Apps",
       "short_name": "My Apps",
       "description": "View all your apps",
-      "url": "/?action=my-apps",
-      "icons": [{ "src": "/icons/shortcut-apps.png", "sizes": "96x96" }]
-    }
-  ],
-  "screenshots": [
-    {
-      "src": "/screenshots/desktop.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "AppFlow Dashboard"
-    },
-    {
-      "src": "/screenshots/mobile.png",
-      "sizes": "750x1334",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "AppFlow Mobile View"
+      "url": "/?action=my-apps"
     }
   ],
   "related_applications": [],
@@ -96,9 +42,6 @@
   "handle_links": "preferred",
   "launch_handler": {
     "client_mode": "focus-existing"
-  },
-  "edge_side_panel": {
-    "preferred_width": 400
   },
   "share_target": {
     "action": "/share-target",
@@ -112,18 +55,8 @@
         {
           "name": "photos",
           "accept": ["image/*"]
-        },
-        {
-          "name": "documents",
-          "accept": ["application/pdf", "text/*"]
         }
       ]
     }
-  },
-  "protocol_handlers": [
-    {
-      "protocol": "web+appflow",
-      "url": "/app?id=%s"
-    }
-  ]
+  }
 }

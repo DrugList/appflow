@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { 
   Sun, Moon, Monitor, Save, Eye, EyeOff, Play, Settings,
   ChevronDown, Palette, Database, Layout, Undo2, Redo2,
-  Smartphone, Tablet, MonitorSmartphone, Download, Share2
+  Smartphone, Tablet, MonitorSmartphone, Download, Share2, ArrowLeft
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -37,8 +37,9 @@ interface TopBarProps {
   lastSaved: Date | null;
   onSave: () => void;
   onPublish: () => void;
-  sidebarTab: string;
-  onSidebarTabChange: (tab: string) => void;
+  sidebarTab: 'fields' | 'views' | 'data' | 'settings';
+  onSidebarTabChange: (tab: 'fields' | 'views' | 'data' | 'settings') => void;
+  onBack?: () => void;
 }
 
 export function TopBar({
@@ -52,6 +53,7 @@ export function TopBar({
   onPublish,
   sidebarTab,
   onSidebarTabChange,
+  onBack,
 }: TopBarProps) {
   const { theme, setTheme } = useTheme();
   const [isEditingName, setIsEditingName] = useState(false);
@@ -74,8 +76,13 @@ export function TopBar({
 
   return (
     <div className="h-14 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex items-center justify-between px-4 gap-4">
-      {/* Left section - App name and logo */}
+      {/* Left section - Back button and App name */}
       <div className="flex items-center gap-3">
+        {onBack && (
+          <Button variant="ghost" size="icon" onClick={onBack} className="h-8 w-8">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+        )}
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
             <Layout className="h-4 w-4 text-white" />
@@ -164,7 +171,7 @@ export function TopBar({
           </Button>
         </div>
 
-        <Separator orientation="vertical" className="h-6 hidden md:block" />
+        <Separator className="h-6 hidden md:block" />
 
         {/* Preview toggle */}
         <Button

@@ -1,4 +1,4 @@
-import { FieldType, FIELD_CATEGORIES, FormField } from '@/types/app-builder';
+import { FieldType, FormField, OptionField } from '@/types/app-builder';
 import {
   Type,
   Hash,
@@ -16,9 +16,6 @@ import {
   CircleDot,
   AlignLeft,
   Link,
-  Palette,
-  Star,
-  ToggleLeft,
   ListChecks,
 } from 'lucide-react';
 
@@ -137,28 +134,10 @@ export const FIELD_TYPE_META: Record<FieldType, {
     category: 'basic',
     description: 'URL/link input',
   },
-  color: {
-    label: 'Color',
-    icon: Palette,
-    category: 'special',
-    description: 'Color picker',
-  },
-  rating: {
-    label: 'Rating',
-    icon: Star,
-    category: 'special',
-    description: 'Star rating',
-  },
-  switch: {
-    label: 'Toggle',
-    icon: ToggleLeft,
-    category: 'selection',
-    description: 'Toggle switch',
-  },
 };
 
 // Get fields by category
-export function getFieldsByCategory(category: typeof FIELD_CATEGORIES[keyof typeof FIELD_CATEGORIES]) {
+export function getFieldsByCategory(category: string) {
   return Object.entries(FIELD_TYPE_META)
     .filter(([_, meta]) => meta.category === category)
     .map(([type, meta]) => ({ type: type as FieldType, ...meta }));
@@ -194,14 +173,10 @@ export function getFieldTypesGrouped() {
 
 // Validate a field value
 export function validateField(field: FormField, value: unknown): string | null {
-  const { validation } = field;
-
-  if (!validation) return null;
-
   // Required check
-  if (validation.required) {
+  if (field.required) {
     if (value === undefined || value === null || value === '') {
-      return validation.customMessage || `${field.label} is required`;
+      return `${field.label} is required`;
     }
   }
 
@@ -212,37 +187,28 @@ export function validateField(field: FormField, value: unknown): string | null {
 
   const stringValue = String(value);
 
-  // Min length
-  if (validation.minLength && stringValue.length < validation.minLength) {
-    return validation.customMessage || `${field.label} must be at least ${validation.minLength} characters`;
-  }
-
-  // Max length
-  if (validation.maxLength && stringValue.length > validation.maxLength) {
-    return validation.customMessage || `${field.label} must be at most ${validation.maxLength} characters`;
-  }
-
-  // Min value (for numbers)
-  if (validation.min !== undefined && field.type === 'number') {
-    const numValue = Number(value);
-    if (!isNaN(numValue) && numValue < validation.min) {
-      return validation.customMessage || `${field.label} must be at least ${validation.min}`;
+  // Min/max for text fields
+  if (typeof value === 'string') {
+    const textField = field as { maxLength?: number; minLength?: number };
+    if (textField.minLength && stringValue.length < textField.minLength) {
+      return `${field.label} must be at least ${textField.minLength} characters`;
+    }
+    if (textField.maxLength && stringValue.length > textField.maxLength) {
+      return `${field.label} must be at most ${textField.maxLength} characters`;
     }
   }
 
-  // Max value (for numbers)
-  if (validation.max !== undefined && field.type === 'number') {
+  // Min/max for number fields
+  if (field.type === 'number') {
+    const numField = field as { min?: number; max?: number };
     const numValue = Number(value);
-    if (!isNaN(numValue) && numValue > validation.max) {
-      return validation.customMessage || `${field.label} must be at most ${validation.max}`;
-    }
-  }
-
-  // Pattern
-  if (validation.pattern) {
-    const regex = new RegExp(validation.pattern);
-    if (!regex.test(stringValue)) {
-      return validation.customMessage || `${field.label} format is invalid`;
+    if (!isNaN(numValue)) {
+      if (numField.min !== undefined && numValue < numField.min) {
+        return `${field.label} must be at least ${numField.min}`;
+      }
+      if (numField.max !== undefined && numValue > numField.max) {
+        return `${field.label} must be at most ${numField.max}`;
+      }
     }
   }
 
@@ -266,24 +232,34 @@ export function formatFieldValue(field: FormField, value: unknown): string {
     case 'datetime':
       return new Date(value as string).toLocaleString();
     case 'location':
-      const loc = value as { lat: number; lng: number };
-      return `${loc.lat.toFixed(6)}, ${loc.lng.toFixed(6)}`;
+      const loc = value as { latitude: number; longitude: number };
+      return `${loc.latitude.toFixed(6)}, ${loc.longitude.toFixed(6)}`;
     case 'checkbox':
-    case 'switch':
       return value ? 'Yes' : 'No';
     case 'select':
     case 'radio':
-      const option = field.options?.find(o => o.value === value);
-      return option?.label || String(value);
+      if (hasOptions(field)) {
+        const option = field.options.find(o => o.value === value);
+        return option?.label || String(value);
+      }
+      return String(value);
     case 'multiselect':
-      const values = value as string[];
-      return values.map(v => {
-        const opt = field.options?.find(o => o.value === v);
-        return opt?.label || v;
-      }).join(', ');
+      if (hasOptions(field)) {
+        const values = value as string[];
+        return values.map(v => {
+          const opt = field.options.find(o => o.value === v);
+          return opt?.label || v;
+        }).join(', ');
+      }
+      return String(value);
     default:
       return String(value);
   }
+}
+
+// Type guard for fields with options
+function hasOptions(field: FormField): field is OptionField {
+  return ['select', 'multiselect', 'radio', 'checkbox'].includes(field.type);
 }
 
 // Color options for field customization
