@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useRouter } from 'next/navigation';
 import { useAppBuilderStore } from '@/lib/app-builder/store';
 import { createField, type FieldType, type AppSchema } from '@/types/app-builder';
 import { FieldPalette } from './FieldPalette';
@@ -16,9 +15,11 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { 
   Database, Palette, Settings as SettingsIcon, Layout, 
-  ChevronRight, ExternalLink, Check, Loader2, ArrowLeft
+  ChevronRight, ExternalLink, Check, Loader2, ArrowLeft, Link2, Copy, CheckCircle,
+  Webhook, Cable
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -29,7 +30,6 @@ interface AppBuilderProps {
 }
 
 export function AppBuilder({ initialApp, appId, onBack }: AppBuilderProps) {
-  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -236,7 +236,7 @@ export function AppBuilder({ initialApp, appId, onBack }: AppBuilderProps) {
                 exit={{ x: -20, opacity: 0 }}
                 className="h-full p-4"
               >
-                <DataSourcePanel />
+                <DataSourcePanel appId={appId || currentApp.id} />
               </motion.div>
             )}
             
@@ -250,6 +250,7 @@ export function AppBuilder({ initialApp, appId, onBack }: AppBuilderProps) {
               >
                 <SettingsPanel 
                   app={currentApp}
+                  appId={appId || currentApp.id}
                   onUpdateDescription={updateAppDescription}
                   onUpdateIcon={updateAppIcon}
                 />
@@ -329,7 +330,45 @@ function ViewsPanel({ views, fields }: { views: AppSchema['views']; fields: AppS
 }
 
 // Data Source Panel Component
-function DataSourcePanel() {
+function DataSourcePanel({ appId }: { appId: string }) {
+  const [showApiDialog, setShowApiDialog] = useState(false);
+  const [apiUrl, setApiUrl] = useState('');
+  const [apiKey, setApiKey] = useState('');
+  const [connecting, setConnecting] = useState(false);
+
+  const handleConnectApi = async () => {
+    if (!apiUrl) {
+      toast.error('Please enter an API URL');
+      return;
+    }
+
+    setConnecting(true);
+    try {
+      const response = await fetch('/api/integrations/rest-api', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          appId,
+          url: apiUrl,
+          apiKey: apiKey || undefined,
+        }),
+      });
+
+      if (response.ok) {
+        toast.success('API connected successfully');
+        setShowApiDialog(false);
+        setApiUrl('');
+        setApiKey('');
+      } else {
+        throw new Error('Failed to connect');
+      }
+    } catch (error) {
+      toast.error('Failed to connect to API');
+    } finally {
+      setConnecting(false);
+    }
+  };
+
   return (
     <div className="h-full flex flex-col">
       <div className="mb-4">
@@ -340,45 +379,100 @@ function DataSourcePanel() {
       </div>
       
       <div className="space-y-2">
-        <Card className="p-3 border-dashed cursor-pointer hover:border-primary/50 transition-colors">
+        {/* Local Database - Active */}
+        <Card className="p-3 border-green-500/50 bg-green-500/5">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
               <Database className="h-5 w-5 text-green-600" />
             </div>
-            <div>
-              <p className="text-sm font-medium">Google Sheets</p>
-              <p className="text-xs text-muted-foreground">Connect to a spreadsheet</p>
-            </div>
-            <ChevronRight className="h-4 w-4 ml-auto text-muted-foreground" />
-          </div>
-        </Card>
-        
-        <Card className="p-3 border-dashed cursor-pointer hover:border-primary/50 transition-colors">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-              <Database className="h-5 w-5 text-blue-600" />
-            </div>
-            <div>
+            <div className="flex-1">
               <p className="text-sm font-medium">Local Database</p>
               <p className="text-xs text-muted-foreground">Built-in data storage</p>
             </div>
-            <Badge variant="secondary" className="ml-auto">Active</Badge>
+            <Badge variant="default" className="bg-green-600">Active</Badge>
           </div>
         </Card>
-        
-        <Card className="p-3 border-dashed cursor-pointer hover:border-primary/50 transition-colors">
+
+        {/* REST API */}
+        <Card 
+          className="p-3 border-dashed cursor-pointer hover:border-primary/50 transition-colors"
+          onClick={() => setShowApiDialog(true)}
+        >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-              <Database className="h-5 w-5 text-purple-600" />
+              <Webhook className="h-5 w-5 text-purple-600" />
             </div>
-            <div>
+            <div className="flex-1">
               <p className="text-sm font-medium">REST API</p>
               <p className="text-xs text-muted-foreground">Connect external API</p>
             </div>
-            <ChevronRight className="h-4 w-4 ml-auto text-muted-foreground" />
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </div>
+        </Card>
+
+        {/* Google Sheets - Coming Soon */}
+        <Card className="p-3 border-dashed opacity-60">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+              <Database className="h-5 w-5 text-green-600" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium">Google Sheets</p>
+              <p className="text-xs text-muted-foreground">Requires Google Cloud setup</p>
+            </div>
+            <Badge variant="outline" className="text-xs">Coming Soon</Badge>
           </div>
         </Card>
       </div>
+
+      {/* API Connection Dialog */}
+      <Dialog open={showApiDialog} onOpenChange={setShowApiDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Connect REST API</DialogTitle>
+            <DialogDescription>
+              Connect your external API to sync data with your app.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <Label>API URL</Label>
+              <Input
+                placeholder="https://api.example.com/data"
+                value={apiUrl}
+                onChange={(e) => setApiUrl(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>API Key (optional)</Label>
+              <Input
+                type="password"
+                placeholder="Enter API key if required"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowApiDialog(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleConnectApi} disabled={connecting}>
+                {connecting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Connecting...
+                  </>
+                ) : (
+                  <>
+                    <Cable className="h-4 w-4 mr-2" />
+                    Connect
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -386,18 +480,36 @@ function DataSourcePanel() {
 // Settings Panel Component
 function SettingsPanel({ 
   app, 
+  appId,
   onUpdateDescription,
   onUpdateIcon 
 }: { 
   app: AppSchema;
+  appId: string;
   onUpdateDescription: (desc: string) => void;
   onUpdateIcon: (icon: string, color: string) => void;
 }) {
+  const [copied, setCopied] = useState(false);
   const icons = ['📱', '📋', '📊', '📝', '🗂️', '💼', '🏠', '🛒', '📚', '🎨', '🔧', '⚡'];
   const colors = [
     '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', 
     '#EC4899', '#06B6D4', '#84CC16', '#F97316', '#6366F1'
   ];
+
+  const embedUrl = typeof window !== 'undefined' 
+    ? `${window.location.origin}?app=${appId}&embed=true`
+    : '';
+
+  const shareUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}?app=${appId}`
+    : '';
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    toast.success('Copied to clipboard!');
+  };
 
   return (
     <div className="h-full flex flex-col overflow-y-auto">
@@ -454,8 +566,58 @@ function SettingsPanel({
           </div>
         </div>
 
+        {/* Share Section */}
         <div className="pt-4 border-t">
-          <Button variant="outline" className="w-full" onClick={() => window.open('?embed=true', '_blank')}>
+          <h4 className="text-xs font-semibold mb-3 flex items-center gap-2">
+            <Link2 className="h-3 w-3" />
+            Share & Embed
+          </h4>
+
+          {/* Share Link */}
+          <div className="space-y-2 mb-3">
+            <Label className="text-xs">Share Link</Label>
+            <div className="flex gap-2">
+              <Input
+                readOnly
+                value={shareUrl}
+                className="text-xs"
+              />
+              <Button 
+                size="icon" 
+                variant="outline"
+                onClick={() => copyToClipboard(shareUrl)}
+              >
+                {copied ? <CheckCircle className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+              </Button>
+            </div>
+          </div>
+
+          {/* Embed Code */}
+          <div className="space-y-2">
+            <Label className="text-xs">Embed Code</Label>
+            <Textarea
+              readOnly
+              value={`<iframe src="${embedUrl}" width="100%" height="600" frameborder="0"></iframe>`}
+              className="text-xs font-mono min-h-[60px]"
+            />
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full"
+              onClick={() => copyToClipboard(`<iframe src="${embedUrl}" width="100%" height="600" frameborder="0"></iframe>`)}
+            >
+              <Copy className="h-3 w-3 mr-2" />
+              Copy Embed Code
+            </Button>
+          </div>
+        </div>
+
+        <div className="pt-4 border-t">
+          <Button 
+            variant="outline" 
+            className="w-full" 
+            onClick={() => window.open(shareUrl, '_blank')}
+          >
             <ExternalLink className="h-4 w-4 mr-2" />
             Preview App
           </Button>

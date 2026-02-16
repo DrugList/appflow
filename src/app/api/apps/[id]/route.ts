@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
 
 // GET /api/apps/[id] - Get a single app
 export async function GET(
@@ -8,6 +7,8 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    const { db } = await import('@/lib/db');
+
     const app = await db.app.findUnique({
       where: { id },
       include: {
@@ -29,7 +30,10 @@ export async function GET(
     });
   } catch (error) {
     console.error('Error fetching app:', error);
-    return NextResponse.json({ error: 'Failed to fetch app' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Failed to fetch app',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }
 
@@ -42,6 +46,8 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
     const { name, description, icon, iconColor, schema, settings, published } = body;
+
+    const { db } = await import('@/lib/db');
 
     const updateData: Record<string, unknown> = {};
     if (name !== undefined) updateData.name = name;
@@ -60,7 +66,10 @@ export async function PUT(
     return NextResponse.json({ app });
   } catch (error) {
     console.error('Error updating app:', error);
-    return NextResponse.json({ error: 'Failed to update app' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Failed to update app',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }
 
@@ -71,6 +80,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
+    const { db } = await import('@/lib/db');
     
     // Delete all records first (cascade)
     await db.record.deleteMany({
@@ -85,6 +95,9 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting app:', error);
-    return NextResponse.json({ error: 'Failed to delete app' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Failed to delete app',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }

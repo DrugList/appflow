@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
 
 // POST /api/apps/[id]/publish - Toggle publish status
 export async function POST(
@@ -8,6 +7,8 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
+
+    const { db } = await import('@/lib/db');
 
     // Get current app
     const app = await db.app.findUnique({
@@ -30,6 +31,9 @@ export async function POST(
     });
   } catch (error) {
     console.error('Error publishing app:', error);
-    return NextResponse.json({ error: 'Failed to publish app' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Failed to publish app',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }

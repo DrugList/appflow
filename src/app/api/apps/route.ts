@@ -1,10 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
 
-// GET /api/apps - List all apps
+// Simple test endpoint
 export async function GET() {
   try {
-    console.log('GET /api/apps - Starting...');
+    // Check environment variables
+    const dbUrl = process.env.DATABASE_URL || process.env.POSTGRES_PRISMA_URL;
+    
+    console.log('Environment check:', {
+      hasDatabaseUrl: !!process.env.DATABASE_URL,
+      hasPostgresPrismaUrl: !!process.env.POSTGRES_PRISMA_URL,
+      hasPostgresUrlNonPooling: !!process.env.POSTGRES_URL_NON_POOLING,
+      nodeEnv: process.env.NODE_ENV,
+    });
+
+    if (!dbUrl) {
+      return NextResponse.json({ 
+        error: 'No database URL found',
+        env: {
+          hasDatabaseUrl: !!process.env.DATABASE_URL,
+          hasPostgresPrismaUrl: !!process.env.POSTGRES_PRISMA_URL,
+          hasPostgresUrlNonPooling: !!process.env.POSTGRES_URL_NON_POOLING,
+        }
+      }, { status: 500 });
+    }
+
+    // Dynamically import Prisma only after checking env
+    const { db } = await import('@/lib/db');
     
     const apps = await db.app.findMany({
       orderBy: { updatedAt: 'desc' },
@@ -15,8 +36,6 @@ export async function GET() {
       }
     });
 
-    console.log(`GET /api/apps - Found ${apps.length} apps`);
-
     return NextResponse.json({
       apps: apps.map(app => ({
         ...app,
@@ -25,9 +44,12 @@ export async function GET() {
     });
   } catch (error) {
     console.error('Error fetching apps:', error);
-    console.error('Error details:', JSON.stringify(error, null, 2));
     return NextResponse.json(
-      { error: 'Failed to fetch apps', details: error instanceof Error ? error.message : 'Unknown error' },
+      { 
+        error: 'Failed to fetch apps', 
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      },
       { status: 500 }
     );
   }
@@ -36,12 +58,10 @@ export async function GET() {
 // POST /api/apps - Create new app
 export async function POST(request: NextRequest) {
   try {
-    console.log('POST /api/apps - Starting...');
-    
     const body = await request.json();
     const { name, description, icon, iconColor, schema } = body;
 
-    console.log('POST /api/apps - Request body:', { name, description, icon, iconColor });
+    console.log('Creating app:', { name, description });
 
     if (!name) {
       return NextResponse.json(
@@ -49,6 +69,8 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    const { db } = await import('@/lib/db');
 
     const app = await db.app.create({
       data: {
@@ -65,14 +87,17 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    console.log('POST /api/apps - Created app:', app.id);
+    console.log('Created app:', app.id);
 
     return NextResponse.json({ app }, { status: 201 });
   } catch (error) {
     console.error('Error creating app:', error);
-    console.error('Error details:', JSON.stringify(error, null, 2));
     return NextResponse.json(
-      { error: 'Failed to create app', details: error instanceof Error ? error.message : 'Unknown error' },
+      { 
+        error: 'Failed to create app', 
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      },
       { status: 500 }
     );
   }
