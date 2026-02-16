@@ -3,6 +3,108 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("POSTGRES_PRISMA_URL")
+  directUrl = env("POSTGRES_URL_NON_POOLING")
+}
+
+model App {
+  id            String         @id @default(cuid())
+  name          String
+  description   String?
+  icon          String?
+  iconColor     String         @default("#3B82F6")
+  published     Boolean        @default(false)
+  schema        String
+  settings      String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  collaborators Collaborator[]
+  dataSources   DataSource[]
+  records       Record[]
+}
+
+model Record {
+  id         String   @id @default(cuid())
+  appId      String
+  data       String
+  isFavorite Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  app        App      @relation(fields: [appId], references: [id], onDelete: Cascade)
+
+  @@index([appId])
+  @@index([createdAt])
+}
+
+model Collaborator {
+  id    String @id @default(cuid())
+  appId String
+  email String
+  role  String
+  app   App    @relation(fields: [appId], references: [id], onDelete: Cascade)
+
+  @@unique([appId, email])
+}
+
+model DataSource {
+  id        String    @id @default(cuid())
+  name      String
+  type      String
+  config    String
+  appId     String?
+  lastSync  DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  app       App?      @relation(fields: [appId], references: [id], onDelete: Cascade)
+}
+
+model Workflow {
+  id         String    @id @default(cuid())
+  appId      String
+  name       String
+  trigger    String
+  conditions String
+  actions    String
+  enabled    Boolean   @default(true)
+  lastRun    DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+
+model NotificationQueue {
+  id        String    @id @default(cuid())
+  type      String
+  payload   String
+  status    String    @default("pending")
+  attempts  Int       @default(0)
+  error     String?
+  createdAt DateTime  @default(now())
+  sentAt    DateTime?
+
+  @@index([status])
+}
+
+model UserSettings {
+  id            String   @id @default(cuid())
+  deviceId      String   @unique
+  theme         String   @default("system")
+  favoriteApps  String   @default("[]")
+  installedApps String   @default("[]")
+  notifications String   @default("{}")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  appId       String
+  recordId    String?
+  action      String
+  changes     String
+  performedBy String?
+  createdAt   DateTime @default(now())
+
+  @@index([appId])
+  @@index([createdAt])
 }
